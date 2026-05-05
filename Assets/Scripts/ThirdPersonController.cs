@@ -17,8 +17,11 @@ public class ThirdPersonController : MonoBehaviour
     [FoldoutGroup("References")]
     public CinemachineCamera characterAimCamera;
     [FoldoutGroup("References")]
+    public GameObject granadePrefab;
+    [FoldoutGroup("References")]
     public LineRenderer RayPrefab;
-
+    [FoldoutGroup("References")]
+    public GameObject TurrentPrefab;
 
     [FoldoutGroup("Controller")]
     public float moveSpeed = 5f;
@@ -65,7 +68,8 @@ public class ThirdPersonController : MonoBehaviour
     [SerializeField] private float sensitivity = 2f;
     [SerializeField] private float yaw;
     [SerializeField] private float pitch;
-
+    [FoldoutGroup("Attack/Granade")]
+    public float ForceThr;
 
     Vector3 normalDebug;
     Vector3 impactPoint;
@@ -123,6 +127,7 @@ public class ThirdPersonController : MonoBehaviour
         inputs.Player.Attack.performed += OnAttack;
         inputs.Player.Look.performed += ctx => MouseMovement = ctx.ReadValue<Vector2>();
         inputs.Player.Look.canceled += ctx => MouseMovement = Vector2.zero;
+        inputs.Player.ThrowGranade.performed += ThrowSmt;
         // inputs.Player.Sprint.performed += OnDash;
     }
 
@@ -320,23 +325,29 @@ public class ThirdPersonController : MonoBehaviour
     {
         OnAttackEvent?.Invoke();
         source.GenerateImpulse();
-        Debug.Log("Attack");
-        Physics.Raycast(WeaponShootAnchor.position,characterAimCamera.transform.forward,out RaycastHit hit,100);
-
-        if(hit.collider != null)
+        //Debug.Log("Attack");
+        
+        if(Physics.SphereCast(WeaponShootAnchor.position,5f, characterAimCamera.transform.forward, out RaycastHit hit, 100))
         {
+            Debug.Log("Hit smt");
             //  Physics.Raycast(transform.position, transform.right, out RaycastHit hitRight, rayLenght);
+            GameObject turrent = Instantiate(TurrentPrefab, hit.point, Quaternion.identity);
+            turrent.transform.up = hit.normal;
             LineRenderer ray = Instantiate(RayPrefab, transform.position, Quaternion.identity);
             ray.gameObject.transform.position = WeaponShootAnchor.position;
 
             ray.positionCount = 2;
             ray.SetPosition(0, WeaponShootAnchor.position);
             ray.SetPosition(1, hit.point);
-
-
-            
-         
+               
         }
+    }
+    private void ThrowSmt(InputAction.CallbackContext context)
+    {
+        GameObject granade = Instantiate(granadePrefab, transform.position, Quaternion.identity);
+        Vector3 dir = characterCamera.transform.forward;
+
+        granade.GetComponent<Rigidbody>().AddForce(dir * ForceThr, ForceMode.Impulse);
     }
     public float GetSpeed()
     {
